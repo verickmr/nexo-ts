@@ -148,7 +148,7 @@ Testes unitários cobrem prioridades, calendário, reabertura e duplicidade. Int
 
 `scripts/test-password.ts` valida entrega no Mailpit, recuperação real, expiração, uso único e revogação de sessão. Execute contra uma segunda instância em `AUTH_MODE=password`, `APP_URL=http://localhost:3001`, porta 3001; a instância principal pode permanecer demonstrativa.
 
-`pnpm eval` executa cenários rotulados com o modelo real, sem criar chamados, e grava `docs/evaluation-latest.json`. Testes roteirizados não demonstram qualidade do LLM: o relatório real só existe após execução com chave. A CI não consome a API de IA.
+`pnpm eval` executa cenários rotulados com o modelo real, sem criar chamados, e grava `docs/evaluation-latest.json`. A execução registrada com Groq / GPT-OSS 120B passou nos 12 cenários de classificação estruturada. Uma verificação adicional confirmou resposta fundamentada em streaming e persistência pela API da aplicação. Resultados e limites estão em [docs/VALIDATION.md](docs/VALIDATION.md). A CI não consome a API de IA.
 
 ## Deploy
 
