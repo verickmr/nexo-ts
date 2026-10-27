@@ -60,7 +60,7 @@ test('funcionário e analista conversam com o agent pausado, devolvem e encerram
   await analyst.getByLabel('Mensagem do analista').fill('Olá, Carla. Já li seu histórico e vou ajudar.'); await analyst.getByRole('button', { name: 'Enviar mensagem' }).click();
   await expect(employee.getByText('Olá, Carla. Já li seu histórico e vou ajudar.')).toBeVisible();
   await employee.getByLabel('Mensagem para o Nexo Assist').fill('Obrigada, estou com o notebook ligado.'); await employee.getByRole('button', { name: 'Enviar mensagem' }).click();
-  await expect(analyst.getByText('Obrigada, estou com o notebook ligado.')).toBeVisible(); await shot(analyst, 'console-assumido');
+  await expect(analyst.getByRole('main').getByText('Obrigada, estou com o notebook ligado.')).toBeVisible(); await shot(analyst, 'console-assumido');
   const current = await (await employee.request.get(`/api/conversations/${id}`)).json(); expect(current.messages.filter((m: { role: string }) => m.role === 'ASSISTANT')).toHaveLength(0);
   await analyst.getByRole('button', { name: 'Devolver ao agent', exact: true }).click(); await expect(employee.getByText('Assistente online', { exact: true })).toBeVisible();
   await analyst.getByRole('button', { name: 'Assumir atendimento', exact: true }).click(); await analyst.getByRole('button', { name: 'Encerrar atendimento', exact: true }).click();
