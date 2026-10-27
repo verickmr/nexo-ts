@@ -1,0 +1,186 @@
+generator client {
+  provider = "prisma-client"
+  output = "../src/generated/prisma"
+}
+datasource db {
+  provider = "postgresql"
+}
+enum Role {
+  EMPLOYEE
+  ANALYST
+}
+enum ConversationState {
+  AGENT
+  WAITING_ANALYST
+  HUMAN
+  CLOSED
+}
+enum MessageRole {
+  USER
+  ASSISTANT
+  ANALYST
+  SYSTEM
+}
+enum TicketType {
+  INC
+  REQ
+}
+enum Category {
+  ACCESS
+  NETWORK
+  HARDWARE
+  SOFTWARE
+  EMAIL
+  OTHER
+}
+enum Priority {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+}
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  WAITING
+  APPROVED
+  RESOLVED
+}
+enum DraftStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+}
+model User {
+  id String @id @default(cuid())
+  email String @unique
+  name String
+  department String
+  os String @default("Windows 11")
+  role Role @default(EMPLOYEE)
+  team String?
+  passwordHash String?
+  passwordChangedAt DateTime?
+  createdAt DateTime @default(now())
+  sessions Session[]
+  resetTokens ResetToken[]
+  conversations Conversation[] @relation("Owner")
+  assignedConversations Conversation[] @relation("Assigned")
+  tickets Ticket[]
+}
+model Session {
+  id String @id @default(cuid())
+  tokenHash String @unique
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  @@index([expiresAt])
+}
+model ResetToken {
+  id String @id @default(cuid())
+  tokenHash String @unique
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  usedAt DateTime?
+  createdAt DateTime @default(now())
+}
+model Conversation {
+  id String @id @default(cuid())
+  ownerId String
+  owner User @relation("Owner", fields: [ownerId], references: [id])
+  assignedToId String?
+  assignedTo User? @relation("Assigned", fields: [assignedToId], references: [id])
+  state ConversationState @default(AGENT)
+  title String @default("Novo atendimento")
+  messageCount Int @default(0)
+  version Int @default(0)
+  context Json @default("{}")
+  handoffReason String?
+  handoffSummary String?
+  handoffTeam String?
+  handedOffAt DateTime?
+  activeRunId String?
+  runStartedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  messages Message[]
+  drafts Draft[]
+  @@index([ownerId, updatedAt])
+  @@index([state, updatedAt])
+}
+model Message {
+  id String @id @default(cuid())
+  conversationId String
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  role MessageRole
+  content String
+  metadata Json @default("{}")
+  requestKey String?
+  createdAt DateTime @default(now())
+  @@unique([conversationId, requestKey])
+  @@index([conversationId, createdAt])
+}
+model Ticket {
+  id String @id @default(cuid())
+  number String @unique
+  ownerId String
+  owner User @relation(fields: [ownerId], references: [id])
+  title String
+  description String
+  type TicketType
+  category Category
+  priority Priority
+  impact String
+  urgency String
+  status TicketStatus @default(OPEN)
+  team String @default("Suporte N1")
+  version Int @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  lastServiceUpdateAt DateTime @default(now())
+  dueAt DateTime
+  resolvedAt DateTime?
+  updates TicketUpdate[]
+  @@index([ownerId, status])
+}
+model TicketUpdate {
+  id String @id @default(cuid())
+  ticketId String
+  ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  author String
+  content String
+  createdAt DateTime @default(now())
+}
+model Draft {
+  id String @id @default(cuid())
+  conversationId String
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  operation String
+  ticketId String?
+  ticketVersion Int?
+  data Json
+  version Int @default(0)
+  status DraftStatus @default(PENDING)
+  resultTicketId String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+model Article {
+  id String @id
+  title String
+  body String
+  keywords String[]
+  applicableOs String[]
+}
+model Counter {
+  key String @id
+  value Int @default(0)
+}
+model Usage {
+  key String @id
+  count Int @default(0)
+  tokens Int @default(0)
+  updatedAt DateTime @updatedAt
+}
