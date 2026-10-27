@@ -50,6 +50,19 @@ describe('Gravações e autorização no PostgreSQL real', () => {
     await transferConversation(conversation.id, 'Teste', 'Resumo');
     await expect(confirmDraft(draft.id, 0, actor)).rejects.toMatchObject({ status: 409 });
   });
+  it('preserva atualização concorrente e exige revisão antes de gravar um rascunho antigo', async () => {
+    const ticket = await db.ticket.findFirstOrThrow({ where: { ownerId: actor.id, category: 'NETWORK' } });
+    const conversation = await db.conversation.create({ data: { ownerId: actor.id } });
+    const draft = await db.draft.create({ data: { conversationId: conversation.id, operation: 'UPDATE', ticketId: ticket.id, ticketVersion: ticket.version, data: { ...data, description: 'Complemento informado pelo funcionário depois do diagnóstico.' } } });
+    await db.ticket.update({ where: { id: ticket.id }, data: { description: 'Nova informação registrada pelo analista em outra sessão.', version: { increment: 1 } } });
+    expect(await confirmDraft(draft.id, 0, actor)).toEqual({ needsReconfirmation: true });
+    const revised = await db.draft.findUniqueOrThrow({ where: { id: draft.id } });
+    const proposed = revised.data as { description: string };
+    expect(proposed.description).toContain('Nova informação registrada pelo analista');
+    expect(proposed.description).toContain('Complemento informado pelo funcionário');
+    const confirmed = await confirmDraft(draft.id, revised.version, actor);
+    expect(confirmed).toHaveProperty('description', proposed.description);
+  });
   it('mensagens repetidas são idempotentes e o limite não bloqueia transferência', async () => {
     const conversation = await db.conversation.create({ data: { ownerId: actor.id, messageCount: 29 } });
     const input = { text: 'Uma mensagem de teste', requestKey: randomUUID() };
