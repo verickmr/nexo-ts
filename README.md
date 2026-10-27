@@ -1,8 +1,14 @@
 # Nexo Assist
 
+[![Validate Nexo Assist](https://github.com/verickmr/nexo-ts/actions/workflows/ci.yml/badge.svg)](https://github.com/verickmr/nexo-ts/actions/workflows/ci.yml)
+
 Service desk de TI conversacional para o desafio Beyond the Bytes. O funcionário resolve dúvidas, consulta seus chamados e confirma rascunhos de criação, atualização ou reabertura. O analista recebe o contexto, assume a conversa, responde e a devolve ao agent ou encerra.
 
 Interface baseada no [protótipo do Pencil](https://app.pen.dev/s/swhm7Xfy1krKDIc-QyqE9J8ZI2xFB0qbNvHIncCXcLg), com Newsreader, Schibsted Grotesk, IBM Plex Mono e os mesmos padrões de layout, cores e estados. Os registros iniciais são fictícios. Prazos são calculados pelas regras do PRD, sem prometer resolução antes de uma reunião.
+
+![Chat do funcionário com rascunho e decisões verificáveis](docs/screenshots/chat.png)
+
+Capturas de [login](docs/screenshots/login.png), [console do analista](docs/screenshots/console-assumido.png), [perfil](docs/screenshots/perfil.png) e [layout mobile](docs/screenshots/chat-mobile.png). As fontes são servidas localmente; suas licenças OFL estão em `public/fonts`.
 
 ## Rodar com Docker
 
