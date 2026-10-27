@@ -1,0 +1,45 @@
+name: Validate Nexo Assist
+on: [push, pull_request]
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env: { POSTGRES_USER: nexo, POSTGRES_PASSWORD: nexo_test, POSTGRES_DB: nexo_test }
+        ports: ['5432:5432']
+        options: --health-cmd "pg_isready -U nexo -d nexo_test" --health-interval 5s --health-timeout 5s --health-retries 10
+      mailpit:
+        image: axllent/mailpit:v1.27.4
+        ports: ['1025:1025', '8025:8025']
+    env:
+      DATABASE_URL: postgresql://nexo:nexo_test@localhost:5432/nexo_test
+      DIRECT_URL: postgresql://nexo:nexo_test@localhost:5432/nexo_test
+      APP_URL: http://localhost:3000
+      AUTH_MODE: demo
+      AI_MODE: scripted
+      SMTP_HOST: localhost
+      SMTP_PORT: '1025'
+      SMTP_FROM: Nexo Assist <assist@nexo.example>
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '24' }
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: pnpm db:generate
+      - run: pnpm db:setup
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm test:integration
+      - run: pnpm build
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm start > /tmp/nexo-demo.log 2>&1 &
+      - run: pnpm test:e2e
+      - run: AUTH_MODE=password APP_URL=http://localhost:3001 pnpm start --port 3001 > /tmp/nexo-password.log 2>&1 &
+      - run: pnpm exec tsx scripts/test-password.ts
+      - run: docker build --target runtime -t nexo-assist-ci .
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with: { name: browser-test-results, path: test-results, retention-days: 7 }

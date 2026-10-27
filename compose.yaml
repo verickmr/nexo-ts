@@ -1,0 +1,48 @@
+name: nexo-assist
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: nexo
+      POSTGRES_PASSWORD: nexo_local
+      POSTGRES_DB: nexo
+    ports: ["127.0.0.1:${DB_PORT:-55435}:5432"]
+    volumes: ["nexo-postgres:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nexo -d nexo"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+  mailpit:
+    image: axllent/mailpit:v1.27.4
+    restart: unless-stopped
+    ports: ["127.0.0.1:8025:8025", "127.0.0.1:1025:1025"]
+  migrate:
+    build: { context: ., target: migrate }
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://nexo:nexo_local@db:5432/nexo
+      DIRECT_URL: postgresql://nexo:nexo_local@db:5432/nexo
+    depends_on: { db: { condition: service_healthy } }
+  app:
+    build: { context: ., target: runtime }
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://nexo:nexo_local@db:5432/nexo
+      DIRECT_URL: postgresql://nexo:nexo_local@db:5432/nexo
+      SMTP_HOST: mailpit
+      SMTP_PORT: 1025
+      APP_URL: http://localhost:3000
+    ports: ["127.0.0.1:3000:3000"]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      mailpit: { condition: service_started }
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+volumes:
+  nexo-postgres:
