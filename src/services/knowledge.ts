@@ -4,15 +4,51 @@ const normalize = (text: string) =>
     .normalize('NFD')
     .replace(/\p{Diacritic}/gu, '')
     .toLowerCase();
-export async function searchArticles(query: string, os: string) {
-  const terms = normalize(query)
+const stopWords = new Set([
+  'como',
+  'com',
+  'das',
+  'dos',
+  'esta',
+  'estao',
+  'meu',
+  'meus',
+  'minha',
+  'minhas',
+  'nao',
+  'nos',
+  'para',
+  'pelo',
+  'pela',
+  'por',
+  'preciso',
+  'qual',
+  'quais',
+  'que',
+  'quero',
+  'sem',
+  'seu',
+  'sua',
+  'tem',
+  'uma',
+  'uns',
+]);
+const tokens = (text: string) =>
+  normalize(text)
+    .replace(/wi-fi/g, 'wifi')
     .split(/\W+/)
-    .filter((s) => s.length > 2);
+    .filter((term) => term.length > 2 && !stopWords.has(term));
+export async function searchArticles(query: string, os: string) {
+  const terms = [...new Set(tokens(query))];
   const articles = await db.article.findMany();
   return articles
     .map((article) => {
-      const text = normalize(`${article.title} ${article.keywords.join(' ')}`);
-      const score = terms.filter((term) => text.includes(term)).length;
+      const headings = new Set(tokens(`${article.title} ${article.keywords.join(' ')}`));
+      const body = new Set(tokens(article.body));
+      const score = terms.reduce(
+        (total, term) => total + (headings.has(term) ? 3 : body.has(term) ? 1 : 0),
+        0,
+      );
       return {
         ...article,
         applicable: !article.applicableOs.length || article.applicableOs.includes(os),
