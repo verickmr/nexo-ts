@@ -36,8 +36,10 @@ jobs:
       - run: pnpm build
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm start > /tmp/nexo-demo.log 2>&1 &
+      - run: node scripts/wait-for-server.mjs http://localhost:3000/api/health
       - run: pnpm test:e2e
       - run: AUTH_MODE=password APP_URL=http://localhost:3001 pnpm start --port 3001 > /tmp/nexo-password.log 2>&1 &
+      - run: node scripts/wait-for-server.mjs http://localhost:3001/api/health
       - run: pnpm exec tsx scripts/test-password.ts
       - run: docker build --target runtime -t nexo-assist-ci .
       - uses: actions/upload-artifact@v4
